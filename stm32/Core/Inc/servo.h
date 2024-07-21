@@ -14,6 +14,33 @@
 
 #define PI 3.14159265
 
+HAL_StatusTypeDef HAL_TIM_PWM_PrepareStart(TIM_HandleTypeDef *htim, uint32_t Channel)
+{
+  /* Check the parameters */
+  assert_param(IS_TIM_CCX_INSTANCE(htim->Instance, Channel));
+
+  /* Check the TIM channel state */
+  if (TIM_CHANNEL_STATE_GET(htim, Channel) != HAL_TIM_CHANNEL_STATE_READY)
+  {
+    return HAL_ERROR;
+  }
+
+  /* Set the TIM channel state */
+  TIM_CHANNEL_STATE_SET(htim, Channel, HAL_TIM_CHANNEL_STATE_BUSY);
+
+  /* Enable the Capture compare channel */
+  TIM_CCxChannelCmd(htim->Instance, Channel, TIM_CCx_ENABLE);
+
+  if (IS_TIM_BREAK_INSTANCE(htim->Instance) != RESET)
+  {
+    /* Enable the main output */
+    __HAL_TIM_MOE_ENABLE(htim);
+  }
+
+  /* Return function status */
+  return HAL_OK;
+}
+
 class PWM_Channel
 {
 public:
@@ -22,18 +49,22 @@ public:
 
 	}
 	void start() {
-		HAL_TIM_PWM_Start(pwmTim, pwmChannel);
+		HAL_TIM_PWM_PrepareStart(pwmTim, pwmChannel);
 	}
 	void stop() {
 		HAL_TIM_PWM_Stop(pwmTim, pwmChannel);
 	}
 	void setDutyCycle(float dutyPpm) {
+		uint32_t reg = uint32_t(dutyPpm*float(pwmTim->Init.Period)) % pwmTim->Init.Period;
 		switch (pwmChannel) {
 			case TIM_CHANNEL_1:
-				pwmTim->Instance->CCR1 = uint32_t(dutyPpm*float(pwmTim->Init.Period)) % pwmTim->Init.Period;
+				pwmTim->Instance->CCR1 = reg;
 				break;
 			case TIM_CHANNEL_2:
-				pwmTim->Instance->CCR2 = uint32_t(dutyPpm*float(pwmTim->Init.Period)) % pwmTim->Init.Period;
+				pwmTim->Instance->CCR2 = reg;
+				break;
+			case TIM_CHANNEL_3:
+				pwmTim->Instance->CCR3 = reg;
 				break;
 			}
 	}
@@ -57,8 +88,8 @@ private:
 class SPWM
 {
 public:
-	SPWM(PWM_Channel &ch1, PWM_Channel &ch2, PWM_Channel &ch3):
-	channels{&ch1, &ch2, &ch3} {}
+	SPWM(TIM_HandleTypeDef &_pwmTim, PWM_Channel &ch1, PWM_Channel &ch2, PWM_Channel &ch3):
+		pwmTim(&_pwmTim), channels{&ch1, &ch2, &ch3} {}
 
 	void start()
 	{
@@ -69,21 +100,27 @@ public:
 		channels[0]->start();
 		channels[1]->start();
 		channels[2]->start();
+
+		__HAL_TIM_ENABLE(pwmTim);
 	}
 
 	void setNormVoltage(float amplitude, float angle) {
 		float offset = 0.0f;
+		float vec[3];
 		for (uint8_t i = 0; i < 3; i++) {
-			float vec = amplitude*std::cos((angle + offset)/180.0f*PI);
-			channels[i]->setDutyCycle(std::fabs(vec));
-			if (vec >= 0.0f)
+			vec[i] = amplitude*std::cos((angle + offset)/180.0f*PI);
+			offset += 120.0f;
+		}
+		for (uint8_t i = 0; i < 3; i++) {
+			channels[i]->setDutyCycle(std::fabs(vec[i]));
+			if (vec[i] >= 0.0f)
 				channels[i]->setPosDirection();
 			else
 				channels[i]->setNegDirection();
-			offset += 120.0f;
 		}
 	}
 private:
+	TIM_HandleTypeDef *pwmTim;
 	PWM_Channel *const channels[3];
 };
 
