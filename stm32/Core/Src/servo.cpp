@@ -86,6 +86,7 @@ void SPWM::start()
 	channels[2]->start();
 
 	__HAL_TIM_ENABLE(pwmTim);
+	__HAL_TIM_ENABLE_IT(pwmTim, TIM_IT_UPDATE);
 }
 
 void SPWM::setNormVoltage(float amplitude, float angle) {
@@ -117,6 +118,17 @@ static uint32_t periodCounter = 0;
 extern "C" {
 
 void PWM_TimerHandler(void)
+{
+	/* Get current value from ADC */
+
+	/* Change duty cycle of PWM */
+
+	/* Switch channel and start new ADC conversion */
+
+	//HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
+}
+
+void ServoTimerHandler(void)
 {
 	if (periodCounter == 0) {
 		vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
