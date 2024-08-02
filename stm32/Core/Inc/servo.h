@@ -12,7 +12,10 @@
 #include <stdint.h>
 #include <cmath>
 
-#define PI 3.14159265
+#define PI 					3.14159265f
+#define Kp 					0.3f
+#define Ki 					5.0f
+#define PID_INT_LIMIT		500.0f
 
 class PWM_Channel
 {
@@ -35,14 +38,26 @@ private:
 class SPWM
 {
 public:
-	SPWM(TIM_HandleTypeDef &_pwmTim, PWM_Channel &ch1, PWM_Channel &ch2, PWM_Channel &ch3):
-		pwmTim(&_pwmTim), channels{&ch1, &ch2, &ch3} {}
+	SPWM(TIM_HandleTypeDef &_pwmTim, PWM_Channel &ch1, PWM_Channel &ch2, PWM_Channel &ch3, ADC_HandleTypeDef *_adc):
+		pwmTim(&_pwmTim), channels{&ch1, &ch2, &ch3}, adc(_adc) {}
 
 	void start();
-	void setNormVoltage(float amplitude, float angle) ;
+	void setNormVoltage(float amplitude, float angle);
+	void setCurrent(float amplitude, float angle);
+	void pwmHandler();
 private:
 	TIM_HandleTypeDef *pwmTim;
 	PWM_Channel *const channels[3];
+	ADC_HandleTypeDef *adc;
+
+	float currents[3] = {0.0f};
+	uint16_t zeroLevels[3] = {0};
+	uint16_t prevZeroLevels[3] = {0};
+	uint8_t curChannel = 0;
+	bool isCurrentMode = false;
+	uint32_t initCounter = 10000;
+
+	float currentIntegratorPI[3] = {0};
 };
 
 

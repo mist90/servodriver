@@ -87,9 +87,12 @@ void SPWM::start()
 
 	__HAL_TIM_ENABLE(pwmTim);
 	__HAL_TIM_ENABLE_IT(pwmTim, TIM_IT_UPDATE);
+	HAL_ADC_Start(adc);
 }
 
 void SPWM::setNormVoltage(float amplitude, float angle) {
+	if (initCounter != 0)
+		return;
 	float offset = 0.0f;
 	float vec[3];
 	for (uint8_t i = 0; i < 3; i++) {
@@ -103,13 +106,60 @@ void SPWM::setNormVoltage(float amplitude, float angle) {
 		else
 			channels[i]->setNegDirection();
 	}
+	isCurrentMode = false;
+}
+
+void SPWM::setCurrent(float amplitude, float angle) {
+	float offset = 0.0f;
+	for (uint8_t i = 0; i < 3; i++) {
+		currents[i] = amplitude*std::cos((angle + offset)/180.0f*PI);
+		offset += 120.0f;
+	}
+	isCurrentMode = true;
+}
+
+void SPWM::pwmHandler()
+{
+	/* Get current value from ADC */
+	if (HAL_ADC_PollForConversion(adc, 0) == HAL_OK) {
+		uint16_t adcValue = HAL_ADC_GetValue(adc);
+		/* Calculation of zero levels */
+		if (initCounter != 0) {
+			initCounter--;
+			zeroLevels[curChannel] = uint16_t((uint32_t(adcValue)*5 + uint32_t(prevZeroLevels[curChannel])*95)/100);
+			prevZeroLevels[curChannel] = zeroLevels[curChannel];
+		} else if (isCurrentMode) {
+			float current = float(int32_t(adcValue) - int32_t(zeroLevels[curChannel]))*0.001714f;
+			float err = currents[curChannel] - current;
+			currentIntegratorPI[curChannel] = currentIntegratorPI[curChannel] + err*Ki*30.0f/1000000.0f;
+			if (currentIntegratorPI[curChannel] > PID_INT_LIMIT)
+				currentIntegratorPI[curChannel] = PID_INT_LIMIT;
+			if (currentIntegratorPI[curChannel] < -PID_INT_LIMIT)
+				currentIntegratorPI[curChannel] = -PID_INT_LIMIT;
+			float Vout = Kp*err + currentIntegratorPI[curChannel];
+			if (Vout > 0.95f)
+				Vout = 0.95f;
+			if (Vout < -0.95f)
+				Vout = -0.95f;
+			channels[curChannel]->setDutyCycle(std::fabs(Vout));
+			if (Vout >= 0.0f)
+				channels[curChannel]->setPosDirection();
+			else
+				channels[curChannel]->setNegDirection();
+		}
+		/* Change duty cycle of PWM */
+	}
+
+	/* Switch channel and start new ADC conversion */
+	curChannel = (curChannel + 1) % 3;
+	HAL_ADC_Start(adc);
 }
 
 
 static PWM_Channel ch1(&htim1, TIM_CHANNEL_1, In1_1_GPIO_Port, In1_1_Pin);
 static PWM_Channel ch2(&htim1, TIM_CHANNEL_2, In2_1_GPIO_Port, In2_1_Pin);
 static PWM_Channel ch3(&htim1, TIM_CHANNEL_3, In3_1_GPIO_Port, In3_1_Pin);
-static SPWM vec(htim1, ch1, ch2, ch3);
+static SPWM vec(htim1, ch1, ch2, ch3, &hadc1);
 
 static uint32_t phase = 0;
 static uint32_t periodCounter = 0;
@@ -119,11 +169,7 @@ extern "C" {
 
 void PWM_TimerHandler(void)
 {
-	/* Get current value from ADC */
-
-	/* Change duty cycle of PWM */
-
-	/* Switch channel and start new ADC conversion */
+	vec.pwmHandler();
 
 	//HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
 }
@@ -132,6 +178,7 @@ void ServoTimerHandler(void)
 {
 	if (periodCounter == 0) {
 		vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
+		//vec.setCurrent(2.0, 360.0f*phase/100.0f);
 		phase = (phase + 1) % 100;
 	}
 	periodCounter = (periodCounter + 1) % PERIOD_TIMER_MS;
