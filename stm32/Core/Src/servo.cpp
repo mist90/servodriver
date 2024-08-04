@@ -85,9 +85,10 @@ void SPWM::start()
 	channels[1]->start();
 	channels[2]->start();
 
+	HAL_ADC_Start(adc);
+	HAL_ADC_PollForConversion(adc, 1);
 	__HAL_TIM_ENABLE(pwmTim);
 	__HAL_TIM_ENABLE_IT(pwmTim, TIM_IT_UPDATE);
-	HAL_ADC_Start(adc);
 }
 
 void SPWM::setNormVoltage(float amplitude, float angle) {
@@ -137,10 +138,10 @@ void SPWM::pwmHandler()
 			if (currentIntegratorPI[curChannel] < -PID_INT_LIMIT)
 				currentIntegratorPI[curChannel] = -PID_INT_LIMIT;
 			float Vout = Kp*err + currentIntegratorPI[curChannel];
-			if (Vout > 0.95f)
-				Vout = 0.95f;
-			if (Vout < -0.95f)
-				Vout = -0.95f;
+			if (Vout > PID_OUT_LIMIT)
+				Vout = PID_OUT_LIMIT;
+			if (Vout < -PID_OUT_LIMIT)
+				Vout = -PID_OUT_LIMIT;
 			channels[curChannel]->setDutyCycle(std::fabs(Vout));
 			if (Vout >= 0.0f)
 				channels[curChannel]->setPosDirection();
@@ -177,9 +178,9 @@ void PWM_TimerHandler(void)
 void ServoTimerHandler(void)
 {
 	if (periodCounter == 0) {
-		vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
-		//vec.setCurrent(2.0, 360.0f*phase/100.0f);
-		phase = (phase + 1) % 100;
+		//vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
+		vec.setCurrent(1.0, 360.0f*phase/100.0f);
+		//phase = (phase + 1) % 100;
 	}
 	periodCounter = (periodCounter + 1) % PERIOD_TIMER_MS;
 }

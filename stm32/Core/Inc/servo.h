@@ -16,6 +16,7 @@
 #define Kp 					0.3f
 #define Ki 					5.0f
 #define PID_INT_LIMIT		500.0f
+#define PID_OUT_LIMIT		0.55f
 
 class PWM_Channel
 {
