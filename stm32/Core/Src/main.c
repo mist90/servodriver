@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,7 +64,21 @@ extern uint8_t volatile servo_timeout;
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int __io_putchar(int ch)
+{
+	HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, 180);
+	return (int)ch;
+}
 
+int __io_getchar(void)
+{
+	uint8_t byte;
+
+	if (HAL_UART_Receive(&huart2, &byte, 1, 0) == HAL_OK)
+		return (int)byte;
+	else
+		return (int)EOF;
+}
 /* USER CODE END 0 */
 
 /**
@@ -104,6 +118,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  printf("Servo start\n");
   while (1)
   {
     /* USER CODE END WHILE */
