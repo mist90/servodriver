@@ -30,3 +30,5 @@ fp-info-cache
 
 
 docs/
+stm32f407/servoF407.launch
+stm32f407/.settings/
