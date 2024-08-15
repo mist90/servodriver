@@ -88,6 +88,10 @@ void SPWM::start()
 	channels[1]->start();
 	channels[2]->start();
 
+	adcs[0]->start();
+	adcs[1]->start();
+	adcs[2]->start();
+
 	__HAL_TIM_ENABLE(pwmTim);
 	__HAL_TIM_ENABLE_IT(pwmTim, TIM_IT_UPDATE);
 }
@@ -198,7 +202,7 @@ void ServoTimerHandler(void)
 	if (periodCounter == 0) {
 		//vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
 		vec.setCurrent(1.0, 360.0f*phase/100.0f);
-		//phase = (phase + 1) % 100;
+		phase = (phase + 1) % 100;
 	}
 	periodCounter = (periodCounter + 1) % PERIOD_TIMER_MS;
 }
