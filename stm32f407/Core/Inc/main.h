@@ -65,8 +65,6 @@ void Error_Handler(void);
 #define Sense2_GPIO_Port GPIOA
 #define Sense3_Pin GPIO_PIN_2
 #define Sense3_GPIO_Port GPIOA
-#define En1_Pin GPIO_PIN_5
-#define En1_GPIO_Port GPIOA
 #define In1_1_Pin GPIO_PIN_10
 #define In1_1_GPIO_Port GPIOE
 #define In2_1_Pin GPIO_PIN_12
@@ -75,6 +73,8 @@ void Error_Handler(void);
 #define In3_1_GPIO_Port GPIOE
 #define En3_Pin GPIO_PIN_10
 #define En3_GPIO_Port GPIOB
+#define En1_Pin GPIO_PIN_15
+#define En1_GPIO_Port GPIOA
 #define En2_Pin GPIO_PIN_3
 #define En2_GPIO_Port GPIOB
 

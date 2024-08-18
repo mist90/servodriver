@@ -13,9 +13,9 @@
 #include <cmath>
 
 #define PI 					3.14159265f
-#define Kp 					0.1f
+#define Kp 					0.5f
 #define Ki 					5.0f
-#define PID_INT_LIMIT		50.0f
+#define PID_INT_LIMIT		2.0f
 
 class PWM_Channel
 {
@@ -45,10 +45,10 @@ class ADC_Channel
 public:
 	ADC_Channel(ADC_HandleTypeDef &_adc): adc(&_adc) {}
 	void start() {
-		HAL_ADC_Start(adc);
+		HAL_ADC_Start_IT(adc);
 	}
 	uint16_t value() {
-		HAL_ADC_PollForConversion(adc, 1);
+		//HAL_ADC_PollForConversion(adc, 1);
 		return HAL_ADC_GetValue(adc);
 	}
 private:
@@ -65,7 +65,7 @@ public:
 	void start();
 	void setNormVoltage(float amplitude, float angle);
 	void setCurrent(float amplitude, float angle);
-	void pwmHandler();
+	void pwmHandler(uint8_t numADC);
 private:
 	TIM_HandleTypeDef *const pwmTim;
 	PWM_Channel *const channels[3];
@@ -74,7 +74,6 @@ private:
 	float currents[3] = {0.0f};
 	uint16_t zeroLevels[3] = {0};
 	uint16_t prevZeroLevels[3] = {0};
-	uint8_t curChannel = 0;
 	bool isCurrentMode = false;
 	uint32_t initCounter = 10000;
 
