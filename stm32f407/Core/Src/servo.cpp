@@ -126,7 +126,7 @@ void SPWM::setCurrent(float amplitude, float angle) {
 
 void SPWM::pwmHandler(uint8_t numADC)
 {
-	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
 	/* Get current value from ADC */
 	uint16_t adcValue = adcs[numADC]->value();
 	/* Calculation of zero levels */
@@ -135,7 +135,8 @@ void SPWM::pwmHandler(uint8_t numADC)
 		zeroLevels[numADC] = uint16_t((uint32_t(adcValue)*5 + uint32_t(prevZeroLevels[numADC])*95)/100);
 		prevZeroLevels[numADC] = zeroLevels[numADC];
 	} else if (isCurrentMode) {
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(pwmTim) ^ (channels[numADC]->isChannelUp())) {
+		if ((__HAL_TIM_IS_TIM_COUNTING_DOWN(pwmTim) ^ (channels[numADC]->isChannelUp())) && --delays[numADC] == 0) {
+			delays[numADC] = DELAY_PWM_CHANGE;
 			/* Measurement of current */
 			float current = float(int32_t(adcValue) - int32_t(zeroLevels[numADC]))*0.001714f;
 			/* PID-controller */
@@ -159,7 +160,7 @@ void SPWM::pwmHandler(uint8_t numADC)
 				channels[numADC]->setNegDirection();
 		}
 	}
-	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
 }
 
 
@@ -192,7 +193,7 @@ void ServoTimerHandler(void)
 	if (periodCounter == 0) {
 		//vec.setNormVoltage(0.65, 360.0f*phase/100.0f);
 		vec.setCurrent(1.0, 360.0f*phase/100.0f);
-		phase = (phase + 1) % 100;
+		//phase = (phase + 1) % 100;
 	}
 	periodCounter = (periodCounter + 1) % PERIOD_TIMER_MS;
 }

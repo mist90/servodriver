@@ -13,9 +13,10 @@
 #include <cmath>
 
 #define PI 					3.14159265f
-#define Kp 					0.5f
-#define Ki 					5.0f
+#define Kp 					1.0f
+#define Ki 					10.0f
 #define PID_INT_LIMIT		2.0f
+#define DELAY_PWM_CHANGE	2
 
 class PWM_Channel
 {
@@ -78,6 +79,7 @@ private:
 	uint32_t initCounter = 10000;
 
 	float currentIntegratorPI[3] = {0};
+	uint8_t delays[3] = {DELAY_PWM_CHANGE};
 };
 
 
