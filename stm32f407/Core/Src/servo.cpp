@@ -154,7 +154,7 @@ void SPWM::pwmHandler(uint8_t numADC)
 			if (duty > 0.9)
 				duty = 0.9;
 			channels[numADC]->setDutyCycle(duty);
-			if (Vout >= 0.0f)
+			if (currents[numADC] >= 0.0f)
 				channels[numADC]->setPosDirection();
 			else
 				channels[numADC]->setNegDirection();
